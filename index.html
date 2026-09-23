@@ -1,0 +1,1427 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universitys - متجر إكسسوارات الموبايل الفاخر</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        gold: {
+                            50: '#fbf7ee',
+                            100: '#f4ebd2',
+                            200: '#ebd9a8',
+                            300: '#e1c37d',
+                            400: '#d7af53',
+                            500: '#c59b27',
+                            600: '#a67d1d',
+                            700: '#835f18',
+                            800: '#6a4c17',
+                            900: '#583f17',
+                            950: '#31210b',
+                        },
+                        darkBg: '#0f0e0c',
+                        cardBg: '#181613',
+                        cardHover: '#23201b',
+                    },
+                    fontFamily: {
+                        sans: ['Cairo', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts Cairo -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #0f0e0c;
+            color: #f4ebd2;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f0e0c;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #a67d1d;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #c59b27;
+        }
+    </style>
+</head>
+<body class="bg-darkBg text-gold-100 min-h-screen flex flex-col selection:bg-gold-500 selection:text-darkBg">
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global Firebase handles
+        window.firebaseApp = null;
+        window.db = null;
+        window.auth = null;
+        window.userId = null;
+        window.appId = typeof __app_id !== 'undefined' ? __app_id : 'universitys-store-default';
+        
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "AIzaSyDummyKeyForPreviewModeOnly12345",
+            authDomain: "universitys-store.firebaseapp.com",
+            projectId: "universitys-store",
+            storageBucket: "universitys-store.appspot.com",
+            messagingSenderId: "1234567890",
+            appId: "1:1234567890:web:abcdef"
+        };
+
+        try {
+            window.firebaseApp = initializeApp(firebaseConfig);
+            window.db = getFirestore(window.firebaseApp);
+            window.auth = getAuth(window.firebaseApp);
+            
+            const token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+            if (token) {
+                signInWithCustomToken(window.auth, token).catch(() => signInAnonymously(window.auth));
+            } else {
+                signInAnonymously(window.auth).catch(err => console.log("Auth fallback:", err));
+            }
+
+            onAuthStateChanged(window.auth, (user) => {
+                if (user) {
+                    window.userId = user.uid;
+                } else {
+                    window.userId = 'guest_' + Math.random().toString(36).substring(2, 9);
+                }
+                if (window.appState && typeof window.appState.initApp === 'function') {
+                    window.appState.initApp();
+                }
+            });
+        } catch (e) {
+            console.warn("Firebase offline mode fallback active", e);
+            window.userId = 'offline_user';
+            setTimeout(() => {
+                if (window.appState && typeof window.appState.initApp === 'function') {
+                    window.appState.initApp();
+                }
+            }, 500);
+        }
+
+        window.FB_UTILS = {
+            signInWithEmailAndPassword,
+            signOut
+        };
+    </script>
+
+    <!-- Header -->
+    <header class="sticky top-0 z-40 bg-cardBg/90 backdrop-blur-md border-b border-gold-900/40 shadow-xl">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <!-- Brand Logo -->
+            <div class="flex items-center space-x-3 space-x-reverse cursor-pointer" onclick="router.navigate('home')">
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-gold-700 via-gold-500 to-gold-300 flex items-center justify-center shadow-lg shadow-gold-900/20 text-darkBg text-2xl font-black">
+                    <i class="fa-solid fa-crown"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-black tracking-wider bg-gradient-to-r from-gold-100 via-gold-300 to-gold-500 bg-clip-text text-transparent">Universitys</h1>
+                    <p class="text-[10px] text-gold-400/80 font-medium tracking-widest">متجر إكسسوارات الموبايل الفاخر</p>
+                </div>
+            </div>
+
+            <!-- Search Bar (Desktop) -->
+            <div class="hidden md:flex items-center flex-1 max-w-md mx-8">
+                <div class="relative w-full">
+                    <input type="text" id="desktopSearchInput" oninput="appState.handleSearch(this.value)" placeholder="ابحث عن إكسسوارات، إيربودز، شواحن..." class="w-full bg-darkBg border border-gold-900/50 rounded-2xl py-2.5 pr-10 pl-4 text-sm text-gold-100 placeholder-gold-400/40 focus:outline-none focus:border-gold-500 transition-all shadow-inner">
+                    <span class="absolute right-3.5 top-3 text-gold-400/60"><i class="fa-solid fa-magnifying-glass"></i></span>
+                </div>
+            </div>
+
+            <!-- Navigation Actions -->
+            <div class="flex items-center space-x-3 space-x-reverse">
+                <button onclick="router.navigate('home')" class="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-gold-200 hover:bg-gold-950/50 transition-all">
+                    <i class="fa-solid fa-house"></i> الرئيسية
+                </button>
+                <div id="authNavContainer">
+                    <!-- Dynamic Secure Admin Button -->
+                </div>
+            </div>
+        </div>
+        <!-- Mobile Search Bar -->
+        <div class="md:hidden px-4 pb-3">
+            <div class="relative w-full">
+                <input type="text" id="mobileSearchInput" oninput="appState.handleSearch(this.value)" placeholder="ابحث عن أي منتج..." class="w-full bg-darkBg border border-gold-900/50 rounded-xl py-2 pr-9 pl-3 text-xs text-gold-100 placeholder-gold-400/40 focus:outline-none focus:border-gold-500">
+                <span class="absolute right-3 top-2.5 text-gold-400/60 text-xs"><i class="fa-solid fa-magnifying-glass"></i></span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main id="mainContent" class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <!-- Rendered dynamically by router & appState -->
+    </main>
+
+    <!-- Notifications Toast Modal Container -->
+    <div id="modalContainer"></div>
+    <div id="toastContainer" class="fixed bottom-5 left-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+    <!-- Footer -->
+    <footer class="bg-cardBg border-t border-gold-900/40 mt-16 py-12 text-center text-xs text-gold-300/60">
+        <div class="max-w-7xl mx-auto px-4 space-y-4">
+            <div class="flex items-center justify-center space-x-2 space-x-reverse text-gold-200 font-bold text-base">
+                <i class="fa-solid fa-crown text-gold-400"></i>
+                <span>Universitys - متجر إكسسوارات الموبايل الفاخر</span>
+            </div>
+            <p>جميع الحقوق محفوظة © 2026 | فخامة الإكسسوارات والجودة العالية بين يديك</p>
+            <div class="flex justify-center space-x-6 space-x-reverse pt-2 text-gold-400">
+                <span class="hover:text-gold-200 cursor-pointer transition-colors"><i class="fa-brands fa-whatsapp text-lg"></i></span>
+                <span class="hover:text-gold-200 cursor-pointer transition-colors"><i class="fa-brands fa-instagram text-lg"></i></span>
+                <span class="hover:text-gold-200 cursor-pointer transition-colors"><i class="fa-brands fa-facebook text-lg"></i></span>
+            </div>
+            <!-- Footer Admin Access Icon / Trigger -->
+            <div class="pt-6 border-t border-gold-900/20 flex items-center justify-center">
+                <button onclick="appState.openLoginModal()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-darkBg/50 border border-gold-900/40 text-gold-400 hover:text-gold-200 hover:border-gold-500 text-[11px] transition-all" title="تسجيل دخول المالك">
+                    <i class="fa-solid fa-key"></i> <span>دخول تحكم المالك</span>
+                </button>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Router System
+        const router = {
+            currentRoute: 'home',
+            params: {},
+            navigate: function(route, params = {}) {
+                this.currentRoute = route;
+                this.params = params;
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                appState.render();
+            }
+        };
+
+        // Application State Management & Firestore Sync with Secure Admin Token
+        const appState = {
+            categories: [
+                { id: 'cat-1', name: 'هيدفونات', icon: 'fa-headphones', image: 'https://placehold.co/400x300/181613/d7af53?text=Headphones' },
+                { id: 'cat-2', name: 'إيربودز', icon: 'fa-ear-listen', image: 'https://placehold.co/400x300/181613/d7af53?text=AirPods' },
+                { id: 'cat-3', name: 'باور بانكات', icon: 'fa-battery-full', image: 'https://placehold.co/400x300/181613/d7af53?text=PowerBanks' },
+                { id: 'cat-4', name: 'شواحن', icon: 'fa-bolt', image: 'https://placehold.co/400x300/181613/d7af53?text=Chargers' },
+                { id: 'cat-5', name: 'ساعات ذكية', icon: 'fa-clock', image: 'https://placehold.co/400x300/181613/d7af53?text=SmartWatches' },
+                { id: 'cat-6', name: 'جرابات', icon: 'fa-mobile-screen', image: 'https://placehold.co/400x300/181613/d7af53?text=Cases' },
+                { id: 'cat-7', name: 'كابلات', icon: 'fa-cable-car', image: 'https://placehold.co/400x300/181613/d7af53?text=Cables' },
+                { id: 'cat-8', name: 'إكسسوارات أخرى', icon: 'fa-puzzle-piece', image: 'https://placehold.co/400x300/181613/d7af53?text=Accessories' }
+            ],
+            products: [
+                {
+                    id: 'prod-1',
+                    name: 'سماعة رأس لاسلكية فخمة ANC',
+                    category: 'هيدفونات',
+                    price: 1250,
+                    images: ['https://placehold.co/600x600/181613/d7af53?text=Headphone+1', 'https://placehold.co/600x600/181613/d7af53?text=Headphone+Detail'],
+                    description: 'سماعة رأس لاسلكية مريحة للغاية مع عزل ضوضاء نشط ANC وبطارية تدوم لأكثر من 40 ساعة تشغيل متواصل مع وسائد أذن جلدية فاخرة.',
+                    specs: 'إصدار بلوتوث 5.3 - عزل ضوضاء ANC - شحن سريع USB-C - ميكروفون مزدوج HD',
+                    colors: ['أسود ملكي', 'ذهبي عتيق', 'بني فخم'],
+                    stock: 15,
+                    hidden: false,
+                    rating: 4.8,
+                    reviewsCount: 24,
+                    createdAt: Date.now() - 86400000 * 5
+                },
+                {
+                    id: 'prod-2',
+                    name: 'إيربودز برو الترا جيل ثالث',
+                    category: 'إيربودز',
+                    price: 890,
+                    images: ['https://placehold.co/600x600/181613/d7af53?text=AirPods+Pro'],
+                    description: 'إيربودز بتصميم أنيق صوت نقي جهير عميق وباس قوي مع علبة شحن لاسلكية ذكية.',
+                    specs: 'مقاومة للتعرق IPX4 - مستشعر لمس ذكي - تدعم الشحن اللاسلكي - صوت محيطي 360 درجة',
+                    colors: ['أبيض ناصع', 'أسود مطفي'],
+                    stock: 25,
+                    hidden: false,
+                    rating: 4.9,
+                    reviewsCount: 42,
+                    createdAt: Date.now() - 86400000 * 4
+                },
+                {
+                    id: 'prod-3',
+                    name: 'باور بانك 20000 ملي أمبير شحن سريع 65 واط',
+                    category: 'باور بانكات',
+                    price: 1450,
+                    images: ['https://placehold.co/600x600/181613/d7af53?text=PowerBank+65W'],
+                    description: 'شاحن متنقل عالي الجودة يكفي لشحن اللابتوب والموبايل عدة مرات بسرعة فائقة مع شاشة رقمية لعرض نسبة البطارية.',
+                    specs: 'سعة 20000 ملي أمبير - منفذ PD 65W - منفذي USB QC 3.0 - هيكل مقاوم للصدمات',
+                    colors: ['أسود داكن'],
+                    stock: 10,
+                    hidden: false,
+                    rating: 4.7,
+                    reviewsCount: 19,
+                    createdAt: Date.now() - 86400000 * 3
+                },
+                {
+                    id: 'prod-4',
+                    name: 'شاحن جداري جاليوم نتريد GaN 100 واط',
+                    category: 'شواحن',
+                    price: 750,
+                    images: ['https://placehold.co/600x600/181613/d7af53?text=GaN+Charger'],
+                    description: 'شاحن جداري ذكي بتقنية GaN الحديثة لشحن 4 أجهزة في نفس الوقت بأمان تام وبدون سخونة.',
+                    specs: 'قدرة 100 واط - 3 منافذ Type-C ومنفذ USB - حماية ذكية ضد ارتفاع الجهد',
+                    colors: ['أبيض', 'أسود'],
+                    stock: 30,
+                    hidden: false,
+                    rating: 4.6,
+                    reviewsCount: 15,
+                    createdAt: Date.now() - 86400000 * 2
+                },
+                {
+                    id: 'prod-5',
+                    name: 'ساعة ذكية ألترا Series 9 مع 3 أساتور',
+                    category: 'ساعات ذكية',
+                    price: 1100,
+                    images: ['https://placehold.co/600x600/181613/d7af53?text=SmartWatch+Ultra'],
+                    description: 'ساعة ذكية رياضية ورسمية بشاشة AMOLED فائقة الوضوح مع إمكانية إجراء المكالمات وتتبع نبضات القلب والرياضات المختلفة.',
+                    specs: 'شاشة 2.02 بوصة AMOLED - اتصال بلوتوث للمكالمات - بطارية 350 ملي أمبير - 3 أسترة هدية',
+                    colors: ['إطار تيتانيوم برتقالي', 'فضي مع أسود'],
+                    stock: 12,
+                    hidden: false,
+                    rating: 4.9,
+                    reviewsCount: 56,
+                    createdAt: Date.now() - 86400000 * 1
+                }
+            ],
+            orders: [],
+            reviews: [
+                { id: 'rev-1', productId: 'prod-1', customerName: 'أحمد محمود', rating: 5, comment: 'سماعة ممتازة جدًا وعزل الصوت جبار، أنصح بها بشدة!', date: '2026-06-10' },
+                { id: 'rev-2', productId: 'prod-2', customerName: 'محمد علي', rating: 5, comment: 'صوت نقي جدا والبطارية بتعيش كتير.', date: '2026-06-12' }
+            ],
+            isAdmin: localStorage.getItem('universitys_is_admin') === 'true',
+            searchQuery: '',
+            activeCategoryFilter: 'all',
+
+            initApp: function() {
+                this.loadFromFirestore();
+                this.updateAuthNav();
+                this.render();
+            },
+
+            loadFromFirestore: async function() {
+                if (!window.db) return;
+                try {
+                    // Load Categories
+                    const catSnap = await getDocs(collection(window.db, 'artifacts', window.appId, 'public', 'data', 'categories'));
+                    if (!catSnap.empty) {
+                        this.categories = catSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    } else {
+                        for (let cat of this.categories) {
+                            await setDoc(doc(window.db, 'artifacts', window.appId, 'public', 'data', 'categories', cat.id), cat);
+                        }
+                    }
+
+                    // Load Products
+                    const prodSnap = await getDocs(collection(window.db, 'artifacts', window.appId, 'public', 'data', 'products'));
+                    if (!prodSnap.empty) {
+                        this.products = prodSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    } else {
+                        for (let prod of this.products) {
+                            await setDoc(doc(window.db, 'artifacts', window.appId, 'public', 'data', 'products', prod.id), prod);
+                        }
+                    }
+
+                    // Load Reviews
+                    const revSnap = await getDocs(collection(window.db, 'artifacts', window.appId, 'public', 'data', 'reviews'));
+                    if (!revSnap.empty) {
+                        this.reviews = revSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    } else {
+                        for (let rev of this.reviews) {
+                            await setDoc(doc(window.db, 'artifacts', window.appId, 'public', 'data', 'reviews', rev.id), rev);
+                        }
+                    }
+
+                    // Load Orders
+                    const ordSnap = await getDocs(collection(window.db, 'artifacts', window.appId, 'public', 'data', 'orders'));
+                    if (!ordSnap.empty) {
+                        this.orders = ordSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    }
+
+                    this.render();
+                } catch (e) {
+                    console.log("Firestore sync info:", e);
+                }
+            },
+
+            saveProductToFirestore: async function(prod) {
+                if (!window.db) return;
+                try {
+                    await setDoc(doc(window.db, 'artifacts', window.appId, 'public', 'data', 'products', prod.id), prod);
+                } catch(e) { console.error(e); }
+            },
+
+            deleteProductFromFirestore: async function(prodId) {
+                if (!window.db) return;
+                try {
+                    await deleteDoc(doc(window.db, 'artifacts', window.appId, 'public', 'data', 'products', prodId));
+                } catch(e) { console.error(e); }
+            },
+
+            saveOrderToFirestore: async function(order) {
+                if (!window.db) return;
+                try {
+                    await setDoc(doc(window.db, 'artifacts', window.appId, 'public', 'data', 'orders', order.id), order);
+                } catch(e) { console.error(e); }
+            },
+
+            updateOrderStatusInFirestore: async function(orderId, status) {
+                if (!window.db) return;
+                try {
+                    await updateDoc(doc(window.db, 'artifacts', window.appId, 'public', 'data', 'orders', orderId), { status });
+                } catch(e) { console.error(e); }
+            },
+
+            saveReviewToFirestore: async function(rev) {
+                if (!window.db) return;
+                try {
+                    await setDoc(doc(window.db, 'artifacts', window.appId, 'public', 'data', 'reviews', rev.id), rev);
+                } catch(e) { console.error(e); }
+            },
+
+            deleteReviewFromFirestore: async function(revId) {
+                if (!window.db) return;
+                try {
+                    await deleteDoc(doc(window.db, 'artifacts', window.appId, 'public', 'data', 'reviews', revId));
+                } catch(e) { console.error(e); }
+            },
+
+            updateAuthNav: function() {
+                const nav = document.getElementById('authNavContainer');
+                if (!nav) return;
+                if (this.isAdmin) {
+                    nav.innerHTML = `
+                        <div class="flex items-center space-x-2 space-x-reverse">
+                            <button onclick="router.navigate('admin')" class="bg-gradient-to-r from-gold-600 to-gold-400 text-darkBg px-4 py-2 rounded-xl text-xs sm:text-sm font-bold shadow-lg hover:opacity-95 transition-all flex items-center gap-1.5">
+                                <i class="fa-solid fa-gauge-high"></i> لوحة التحكم الخاصة بك
+                            </button>
+                            <button onclick="appState.logoutAdmin()" class="bg-darkBg border border-gold-900/60 text-gold-300 hover:text-gold-100 px-3 py-2 rounded-xl text-xs font-semibold transition-all" title="تسجيل خروج">
+                                <i class="fa-solid fa-right-from-bracket"></i>
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    nav.innerHTML = `
+                        <button onclick="appState.openLoginModal()" class="bg-cardBg border border-gold-950/60 text-gold-300 hover:text-gold-100 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-1.5 shadow-sm">
+                            <i class="fa-solid fa-lock text-gold-400"></i> دخول المدير الخاص
+                        </button>
+                    `;
+                }
+            },
+
+            openLoginModal: function() {
+                const modal = document.getElementById('modalContainer');
+                modal.innerHTML = `
+                    <div class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+                        <div class="bg-cardBg border border-gold-900/60 rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl relative">
+                            <button onclick="appState.closeModal()" class="absolute top-4 left-4 text-gold-400 hover:text-gold-200 text-xl"><i class="fa-solid fa-xmark"></i></button>
+                            
+                            <div class="text-center mb-6">
+                                <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-gold-600 to-gold-400 flex items-center justify-center mx-auto mb-3 shadow-lg text-darkBg text-2xl font-bold">
+                                    <i class="fa-solid fa-shield-halved"></i>
+                                </div>
+                                <h2 class="text-2xl font-bold text-gold-200">صلاحية المدير الحصرية</h2>
+                                <p class="text-xs text-gold-300/70 mt-1">أدخل البريد الإلكتروني وكلمة المرور الخاصة بك لإدارة المتجر</p>
+                            </div>
+
+                            <form onsubmit="appState.handleAdminLogin(event)" class="space-y-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-gold-300 mb-1">البريد الإلكتروني للمدير</label>
+                                    <input type="email" id="adminEmailInput" required placeholder="yelfeky67@gmail.com" class="w-full bg-darkBg border border-gold-900/60 rounded-xl px-4 py-3 text-sm text-gold-100 focus:outline-none focus:border-gold-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-gold-300 mb-1">كلمة المرور السرية</label>
+                                    <input type="password" id="adminSecretPass" required placeholder="أدخل كلمة المرور..." class="w-full bg-darkBg border border-gold-900/60 rounded-xl px-4 py-3 text-sm text-gold-100 focus:outline-none focus:border-gold-500">
+                                </div>
+                                <div id="loginErrorMsg" class="text-red-400 text-xs text-center hidden">البريد الإلكتروني أو كلمة المرور غير صحيحة</div>
+                                <button type="submit" class="w-full bg-gradient-to-r from-gold-600 to-gold-400 text-darkBg font-bold py-3 rounded-xl shadow-lg hover:opacity-95 transition-all text-sm">
+                                    فتح لوحة التحكم
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                `;
+            },
+
+            closeModal: function() {
+                document.getElementById('modalContainer').innerHTML = '';
+            },
+
+            handleAdminLogin: function(e) {
+                e.preventDefault();
+                const email = document.getElementById('adminEmailInput').value.trim();
+                const pass = document.getElementById('adminSecretPass').value.trim();
+                
+                const CORRECT_EMAIL = 'yelfeky67@gmail.com';
+                const CORRECT_PASS = 'yousef12345';
+
+                if (email === CORRECT_EMAIL && pass === CORRECT_PASS) {
+                    this.isAdmin = true;
+                    localStorage.setItem('universitys_is_admin', 'true');
+                    this.closeModal();
+                    this.updateAuthNav();
+                    router.navigate('admin');
+                    this.showToast('مرحباً بك مجدداً بصفتك مالك المتجر', 'success');
+                } else {
+                    const errEl = document.getElementById('loginErrorMsg');
+                    if (errEl) errEl.classList.remove('hidden');
+                    this.showToast('البيانات المدخلة غير صحيحة', 'error');
+                }
+            },
+
+            logoutAdmin: function() {
+                this.isAdmin = false;
+                localStorage.removeItem('universitys_is_admin');
+                this.updateAuthNav();
+                router.navigate('home');
+                this.showToast('تم تسجيل الخروج بنجاح', 'info');
+            },
+
+            handleSearch: function(queryText) {
+                this.searchQuery = queryText.trim().toLowerCase();
+                if (router.currentRoute !== 'home' && router.currentRoute !== 'category') {
+                    router.navigate('home');
+                } else {
+                    this.render();
+                }
+            },
+
+            showToast: function(message, type = 'success') {
+                const container = document.getElementById('toastContainer');
+                const id = 'toast_' + Date.now();
+                const bg = type === 'success' ? 'bg-gold-500 text-darkBg' : 'bg-cardBg border border-gold-600 text-gold-200';
+                container.innerHTML += `
+                    <div id="${id}" class="${bg} px-4 py-3 rounded-2xl shadow-2xl text-xs font-bold flex items-center gap-2 pointer-events-auto transition-all animate-bounce">
+                        <i class="fa-solid fa-circle-check text-base"></i>
+                        <span>${message}</span>
+                    </div>
+                `;
+                setTimeout(() => {
+                    const el = document.getElementById(id);
+                    if (el) el.remove();
+                }, 3500);
+            },
+
+            render: function() {
+                const container = document.getElementById('mainContent');
+                if (!container) return;
+
+                if (router.currentRoute === 'home') {
+                    container.innerHTML = this.renderHome();
+                } else if (router.currentRoute === 'category') {
+                    container.innerHTML = this.renderCategoryProducts(router.params.categoryName);
+                } else if (router.currentRoute === 'product') {
+                    container.innerHTML = this.renderProductDetails(router.params.productId);
+                } else if (router.currentRoute === 'admin') {
+                    if (!this.isAdmin) {
+                        router.navigate('home');
+                        return;
+                    }
+                    container.innerHTML = this.renderAdminDashboard();
+                }
+            },
+
+            renderHome: function() {
+                let filteredProducts = this.products.filter(p => !p.hidden || this.isAdmin);
+                if (this.searchQuery) {
+                    filteredProducts = filteredProducts.filter(p => p.name.toLowerCase().includes(this.searchQuery) || p.description.toLowerCase().includes(this.searchQuery) || p.category.toLowerCase().includes(this.searchQuery));
+                }
+
+                return `
+                    <div class="relative rounded-3xl bg-gradient-to-r from-cardBg via-cardHover to-cardBg border border-gold-900/50 p-6 sm:p-12 mb-10 overflow-hidden shadow-2xl">
+                        <div class="absolute -left-10 -bottom-10 w-64 h-64 bg-gold-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                        <div class="relative z-10 max-w-2xl space-y-4">
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gold-950 text-gold-300 border border-gold-800/60">
+                                <i class="fa-solid fa-star text-gold-400"></i> الوجهة الأولى لإكسسوارات الموبايل الأصلية
+                            </span>
+                            <h2 class="text-3xl sm:text-5xl font-black text-gold-100 tracking-wide leading-tight">
+                                أرقى إكسسوارات الموبايل في متجر <span class="text-gold-400">Universitys</span>
+                            </h2>
+                            <p class="text-sm sm:text-base text-gold-300/80 leading-relaxed">
+                                اكتشف تشكيلة فاخرة من الإيربودز، الساعات الذكية، الشواحن السريعة، والجرابات المصممة خصيصاً لتناسب أجهزتك بأفضل الأسعار وأعلى جودة.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="mb-12">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-xl sm:text-2xl font-bold text-gold-200 flex items-center gap-2">
+                                <i class="fa-solid fa-layer-group text-gold-400"></i> أقسام المتجر
+                            </h3>
+                            <span class="text-xs text-gold-400/70">تصفح حسب القسم</span>
+                        </div>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 sm:gap-4">
+                            ${this.categories.map(cat => `
+                                <div onclick="router.navigate('category', { categoryName: '${cat.name}' })" class="group bg-cardBg border border-gold-900/40 hover:border-gold-500/70 p-4 rounded-2xl cursor-pointer text-center transition-all duration-300 hover:-translate-y-1 shadow-md">
+                                    <div class="w-12 h-12 rounded-2xl bg-darkBg border border-gold-900/50 flex items-center justify-center mx-auto mb-3 text-gold-400 text-lg group-hover:scale-110 group-hover:bg-gold-500 group-hover:text-darkBg transition-all">
+                                        <i class="fa-solid ${cat.icon || 'fa-mobile-screen'}"></i>
+                                    </div>
+                                    <h4 class="text-xs sm:text-sm font-bold text-gold-200 group-hover:text-gold-400 transition-colors">${cat.name}</h4>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-xl sm:text-2xl font-bold text-gold-200 flex items-center gap-2">
+                                <i class="fa-solid fa-fire text-gold-400"></i> ${this.searchQuery ? 'نتائج البحث' : 'أحدث المنتجات المعروضة'}
+                            </h3>
+                            <span class="text-xs text-gold-400">${filteredProducts.length} منتج متاح</span>
+                        </div>
+
+                        ${filteredProducts.length === 0 ? `
+                            <div class="text-center py-16 bg-cardBg rounded-3xl border border-gold-900/40">
+                                <i class="fa-solid fa-box-open text-4xl text-gold-600 mb-3"></i>
+                                <p class="text-gold-300 font-bold">لا توجد منتجات مطابقة للبحث</p>
+                            </div>
+                        ` : `
+                            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                                ${filteredProducts.map(p => this.renderProductCard(p)).join('')}
+                            </div>
+                        `}
+                    </div>
+                `;
+            },
+
+            renderProductCard: function(p) {
+                const prodReviews = this.reviews.filter(r => r.productId === p.id);
+                const avgRating = prodReviews.length > 0 ? (prodReviews.reduce((acc, r) => acc + r.rating, 0) / prodReviews.length).toFixed(1) : (p.rating || 5.0);
+                
+                return `
+                    <div class="bg-cardBg border border-gold-900/50 hover:border-gold-500/70 rounded-3xl overflow-hidden shadow-xl flex flex-col group transition-all duration-300 hover:-translate-y-1.5 ${p.hidden ? 'opacity-60 border-dashed border-red-500/50' : ''}">
+                        <div class="relative aspect-square overflow-hidden bg-darkBg cursor-pointer" onclick="router.navigate('product', { productId: '${p.id}' })">
+                            <img src="${p.images && p.images[0] ? p.images[0] : 'https://placehold.co/400x400/181613/d7af53?text=Universitys'}" alt="${p.name}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onerror="this.src='https://placehold.co/400x400/181613/d7af53?text=Universitys'">
+                            <span class="absolute top-3 right-3 bg-darkBg/90 backdrop-blur-md border border-gold-900/60 text-gold-300 text-[10px] font-bold px-2.5 py-1 rounded-xl">
+                                ${p.category}
+                            </span>
+                            ${p.hidden ? '<span class="absolute top-3 left-3 bg-red-950 text-red-400 border border-red-800 text-[10px] font-bold px-2 py-0.5 rounded-lg">مخفي (للمالك فقط)</span>' : ''}
+                        </div>
+                        <div class="p-5 flex-1 flex flex-col justify-between space-y-4">
+                            <div>
+                                <div class="flex items-center justify-between text-xs text-gold-400 mb-1.5">
+                                    <div class="flex items-center gap-1">
+                                        <i class="fa-solid fa-star text-gold-400"></i>
+                                        <span class="font-bold">${avgRating}</span>
+                                        <span class="text-gold-300/60">(${prodReviews.length})</span>
+                                    </div>
+                                    <span class="text-[11px] ${p.stock > 0 ? 'text-emerald-400' : 'text-red-400'} font-semibold">${p.stock > 0 ? 'متوفر بالمخزون' : 'نفذت الكمية'}</span>
+                                </div>
+                                <h4 onclick="router.navigate('product', { productId: '${p.id}' })" class="text-sm sm:text-base font-bold text-gold-100 hover:text-gold-400 cursor-pointer line-clamp-1 transition-colors">${p.name}</h4>
+                            </div>
+                            <div class="flex items-center justify-between pt-3 border-t border-gold-900/40">
+                                <div>
+                                    <span class="text-xs text-gold-400/70 block">السعر</span>
+                                    <span class="text-lg font-black text-gold-200">${p.price} <small class="text-xs font-normal">ج.م</small></span>
+                                </div>
+                                <button onclick="router.navigate('product', { productId: '${p.id}' })" class="bg-gradient-to-r from-gold-600 to-gold-400 text-darkBg hover:opacity-90 px-4 py-2.5 rounded-xl text-xs font-bold shadow-lg transition-all flex items-center gap-1.5">
+                                    <span>اطلب الآن</span> <i class="fa-solid fa-bag-shopping"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            },
+
+            renderCategoryProducts: function(catName) {
+                const categoryProducts = this.products.filter(p => p.category === catName && (!p.hidden || this.isAdmin));
+
+                return `
+                    <div class="mb-8">
+                        <button onclick="router.navigate('home')" class="inline-flex items-center gap-2 text-xs font-bold text-gold-400 hover:text-gold-200 mb-4 bg-cardBg border border-gold-900/60 px-3.5 py-2 rounded-xl transition-all">
+                            <i class="fa-solid fa-arrow-right"></i> العودة للرئيسية
+                        </button>
+                        <div class="bg-cardBg border border-gold-900/50 rounded-3xl p-6 sm:p-8 shadow-xl flex items-center justify-between">
+                            <div>
+                                <span class="text-xs font-bold text-gold-400 uppercase tracking-widest">قسم خاص</span>
+                                <h2 class="text-2xl sm:text-4xl font-black text-gold-100 mt-1">${catName}</h2>
+                            </div>
+                            <div class="w-14 h-14 rounded-2xl bg-darkBg border border-gold-900/60 flex items-center justify-center text-gold-400 text-2xl shadow-inner">
+                                <i class="fa-solid fa-layer-group"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    ${categoryProducts.length === 0 ? `
+                        <div class="text-center py-20 bg-cardBg rounded-3xl border border-gold-900/40">
+                            <i class="fa-solid fa-box-open text-4xl text-gold-600 mb-3"></i>
+                            <p class="text-gold-300 font-bold">لا توجد منتجات مضافة في هذا القسم حالياً</p>
+                        </div>
+                    ` : `
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                            ${categoryProducts.map(p => this.renderProductCard(p)).join('')}
+                        </div>
+                    `}
+                `;
+            },
+
+            renderProductDetails: function(productId) {
+                const p = this.products.find(item => item.id === productId);
+                if (!p) {
+                    return `
+                        <div class="text-center py-20">
+                            <h3 class="text-xl font-bold text-gold-300 mb-4">المنتج غير موجود</h3>
+                            <button onclick="router.navigate('home')" class="bg-gold-500 text-darkBg px-6 py-2.5 rounded-xl font-bold">العودة للرئيسية</button>
+                        </div>
+                    `;
+                }
+
+                const prodReviews = this.reviews.filter(r => r.productId === p.id);
+                const avgRating = prodReviews.length > 0 ? (prodReviews.reduce((acc, r) => acc + r.rating, 0) / prodReviews.length).toFixed(1) : (p.rating || 5.0);
+
+                return `
+                    <div class="mb-6 flex items-center justify-between">
+                        <button onclick="router.navigate('home')" class="inline-flex items-center gap-2 text-xs font-bold text-gold-400 hover:text-gold-200 bg-cardBg border border-gold-900/60 px-3.5 py-2 rounded-xl transition-all">
+                            <i class="fa-solid fa-arrow-right"></i> العودة للرئيسية
+                        </button>
+                        ${this.isAdmin ? `
+                            <div class="flex items-center gap-2">
+                                <button onclick="appState.openEditProductModal('${p.id}')" class="bg-gold-500 text-darkBg px-4 py-2 rounded-xl text-xs font-bold shadow">
+                                    <i class="fa-solid fa-pen-to-square"></i> تعديل المنتج (خاص بك)
+                                </button>
+                            </div>
+                        ` : ''}
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                        <!-- Images Column -->
+                        <div class="lg:col-span-6 space-y-4">
+                            <div class="bg-cardBg border border-gold-900/50 rounded-3xl overflow-hidden shadow-2xl aspect-square">
+                                <img id="mainProductImg" src="${p.images && p.images[0] ? p.images[0] : 'https://placehold.co/600x600'}" alt="${p.name}" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/600x600'">
+                            </div>
+                            ${p.images && p.images.length > 1 ? `
+                                <div class="grid grid-cols-4 gap-3">
+                                    ${p.images.map((img, idx) => `
+                                        <div onclick="document.getElementById('mainProductImg').src='${img}'" class="aspect-square rounded-2xl bg-cardBg border border-gold-900/60 overflow-hidden cursor-pointer hover:border-gold-400 transition-all">
+                                            <img src="${img}" class="w-full h-full object-cover">
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            ` : ''}
+                        </div>
+
+                        <!-- Details Column -->
+                        <div class="lg:col-span-6 space-y-6">
+                            <div class="bg-cardBg border border-gold-900/50 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
+                                <div>
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-xs font-bold px-3 py-1 rounded-full bg-gold-950 text-gold-300 border border-gold-800/60">${p.category}</span>
+                                        <div class="flex items-center gap-1 text-gold-400 text-sm font-bold">
+                                            <i class="fa-solid fa-star"></i>
+                                            <span>${avgRating}</span>
+                                            <span class="text-gold-300/60 text-xs">(${prodReviews.length} تقييم)</span>
+                                        </div>
+                                    </div>
+                                    <h1 class="text-2xl sm:text-3xl font-black text-gold-100">${p.name}</h1>
+                                </div>
+
+                                <div class="flex items-baseline gap-3">
+                                    <span class="text-3xl font-black text-gold-400">${p.price}</span>
+                                    <span class="text-sm font-bold text-gold-300">جنيه مصري</span>
+                                </div>
+
+                                <p class="text-sm text-gold-300/80 leading-relaxed border-t border-b border-gold-900/40 py-4">
+                                    ${p.description || 'لا يوجد وصف متاح.'}
+                                </p>
+
+                                ${p.specs ? `
+                                    <div class="space-y-2">
+                                        <h3 class="text-xs font-bold text-gold-400"><i class="fa-solid fa-circle-info ml-1"></i> المواصفات التقنية:</h3>
+                                        <p class="text-xs text-gold-200/90 bg-darkBg/60 p-3.5 rounded-2xl border border-gold-900/40">${p.specs}</p>
+                                    </div>
+                                ` : ''}
+
+                                ${p.colors && p.colors.length > 0 ? `
+                                    <div class="space-y-2">
+                                        <label class="block text-xs font-bold text-gold-400">اختر اللون المطلوب:</label>
+                                        <div class="flex flex-wrap gap-2" id="colorSelectionContainer">
+                                            ${p.colors.map((col, idx) => `
+                                                <button type="button" onclick="appState.selectProductColor('${col}', this)" class="color-btn px-4 py-2 rounded-xl text-xs font-bold border ${idx === 0 ? 'bg-gold-500 text-darkBg border-gold-400 selected' : 'bg-darkBg text-gold-300 border-gold-900/60 hover:border-gold-500'} transition-all">
+                                                    ${col}
+                                                </button>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                ` : ''}
+
+                                <div class="space-y-2">
+                                    <label class="block text-xs font-bold text-gold-400">الكمية المطلوبة:</label>
+                                    <div class="flex items-center space-x-3 space-x-reverse">
+                                        <button onclick="appState.changeQty(-1)" class="w-10 h-10 rounded-xl bg-darkBg border border-gold-900/60 text-gold-200 font-bold hover:bg-gold-950">-</button>
+                                        <input type="number" id="orderQtyInput" value="1" min="1" max="${p.stock || 10}" class="w-16 text-center bg-darkBg border border-gold-900/60 rounded-xl py-2 text-gold-100 font-bold text-sm focus:outline-none">
+                                        <button onclick="appState.changeQty(1)" class="w-10 h-10 rounded-xl bg-darkBg border border-gold-900/60 text-gold-200 font-bold hover:bg-gold-950">+</button>
+                                    </div>
+                                </div>
+
+                                <button onclick="appState.openCheckoutModal('${p.id}')" class="w-full bg-gradient-to-r from-gold-600 to-gold-400 text-darkBg font-black py-4 rounded-2xl shadow-xl hover:opacity-95 transition-all text-base flex items-center justify-center gap-2">
+                                    <span>اطلب الآن</span> <i class="fa-solid fa-bag-shopping text-lg"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Reviews Section -->
+                    <div class="mt-12 bg-cardBg border border-gold-900/50 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-8">
+                        <div class="flex items-center justify-between border-b border-gold-900/40 pb-4">
+                            <div>
+                                <h3 class="text-xl font-bold text-gold-200">تقييمات العملاء</h3>
+                                <p class="text-xs text-gold-400 mt-1">آراء العملاء الذين قاموا بتجربة المنتج</p>
+                            </div>
+                            <button onclick="appState.openReviewModal('${p.id}')" class="bg-darkBg border border-gold-900/60 text-gold-300 hover:text-gold-100 px-4 py-2.5 rounded-xl text-xs font-bold transition-all">
+                                أضف تقييمك <i class="fa-solid fa-star text-gold-400 mr-1"></i>
+                            </button>
+                        </div>
+
+                        ${prodReviews.length === 0 ? `
+                            <p class="text-xs text-gold-400/70 text-center py-6">لا توجد تقييمات لهذا المنتج حتى الآن. كن أول من يقيّمه!</p>
+                        ` : `
+                            <div class="space-y-4">
+                                ${prodReviews.map(r => `
+                                    <div class="bg-darkBg/60 border border-gold-900/40 p-4 rounded-2xl space-y-2">
+                                        <div class="flex items-center justify-between">
+                                            <span class="font-bold text-xs text-gold-200">${r.customerName}</span>
+                                            <div class="flex items-center text-gold-400 text-xs gap-1">
+                                                <span>${r.rating}</span> <i class="fa-solid fa-star"></i>
+                                            </div>
+                                        </div>
+                                        <p class="text-xs text-gold-300/90">${r.comment}</p>
+                                        <span class="text-[10px] text-gold-400/50 block text-left">${r.date || ''}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `}
+                    </div>
+                `;
+            },
+
+            selectedColorValue: '',
+            selectProductColor: function(col, btn) {
+                this.selectedColorValue = col;
+                const buttons = document.querySelectorAll('.color-btn');
+                buttons.forEach(b => {
+                    b.classList.remove('bg-gold-500', 'text-darkBg', 'border-gold-400');
+                    b.classList.add('bg-darkBg', 'text-gold-300', 'border-gold-900/60');
+                });
+                btn.classList.remove('bg-darkBg', 'text-gold-300', 'border-gold-900/60');
+                btn.classList.add('bg-gold-500', 'text-darkBg', 'border-gold-400');
+            },
+
+            changeQty: function(val) {
+                const input = document.getElementById('orderQtyInput');
+                if (!input) return;
+                let current = parseInt(input.value) || 1;
+                current += val;
+                if (current < 1) current = 1;
+                input.value = current;
+            },
+
+            openCheckoutModal: function(productId) {
+                const p = this.products.find(item => item.id === productId);
+                if (!p) return;
+
+                const qty = parseInt(document.getElementById('orderQtyInput')?.value) || 1;
+                const color = this.selectedColorValue || (p.colors && p.colors.length > 0 ? p.colors[0] : 'افتراضي');
+
+                const modal = document.getElementById('modalContainer');
+                modal.innerHTML = `
+                    <div class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+                        <div class="bg-cardBg border border-gold-900/60 rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+                            <button onclick="appState.closeModal()" class="absolute top-4 left-4 text-gold-400 hover:text-gold-200 text-xl"><i class="fa-solid fa-xmark"></i></button>
+                            
+                            <div class="text-center mb-6">
+                                <h2 class="text-2xl font-black text-gold-100">إتمام طلب الشراء</h2>
+                                <p class="text-xs text-gold-300/70 mt-1">${p.name} (${qty} قطعة) - الإجمالي: <span class="text-gold-400 font-bold">${p.price * qty} ج.م</span></p>
+                            </div>
+
+                            <form onsubmit="appState.submitOrder(event, '${p.id}', ${qty}, '${color}', ${p.price})" class="space-y-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-gold-300 mb-1">اسم العميل الثلاثي *</label>
+                                    <input type="text" id="custName" required placeholder="مثال: أحمد محمد إبراهيم" class="w-full bg-darkBg border border-gold-900/60 rounded-xl px-4 py-2.5 text-xs text-gold-100 focus:outline-none focus:border-gold-500">
+                                </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-xs font-semibold text-gold-300 mb-1">رقم الهاتف (واتساب أو اتصال) *</label>
+                                        <input type="tel" id="custPhone" required placeholder="010xxxxxxxx" class="w-full bg-darkBg border border-gold-900/60 rounded-xl px-4 py-2.5 text-xs text-gold-100 focus:outline-none focus:border-gold-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-gold-300 mb-1">المحافظة *</label>
+                                        <select id="custGov" class="w-full bg-darkBg border border-gold-900/60 rounded-xl px-4 py-2.5 text-xs text-gold-100 focus:outline-none focus:border-gold-500">
+                                            <option value="القاهرة">القاهرة</option>
+                                            <option value="الجيزة">الجيزة</option>
+                                            <option value="الإسكندرية">الإسكندرية</option>
+                                            <option value="الدقهلية">الدقهلية</option>
+                                            <option value="الشرقية">الشرقية</option>
+                                            <option value="محافظة أخرى">محافظة أخرى</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-gold-300 mb-1">العنوان بالتفصيل (الشارع، رقم العمارة، الشقة) *</label>
+                                    <textarea id="custAddress" required rows="2" placeholder="اكتب عنوانك بالتفصيل لضمان سرعة التوصيل" class="w-full bg-darkBg border border-gold-900/60 rounded-xl px-4 py-2 text-xs text-gold-100 focus:outline-none focus:border-gold-500"></textarea>
+                                </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-xs font-semibold text-gold-300 mb-1">اللون المطلوب</label>
+                                        <input type="text" id="custColor" readonly value="${color}" class="w-full bg-darkBg/60 border border-gold-900/40 rounded-xl px-4 py-2.5 text-xs text-gold-300">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-gold-300 mb-1">طريقة التواصل المفضلة</label>
+                                        <select id="custContactMethod" class="w-full bg-darkBg border border-gold-900/60 rounded-xl px-4 py-2.5 text-xs text-gold-100 focus:outline-none focus:border-gold-500">
+                                            <option value="WhatsApp">مراسلة واتساب</option>
+                                            <option value="مكالمة هاتفية">مكالمة هاتفية</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-gold-300 mb-1">ملاحظات إضافية (اختياري)</label>
+                                    <input type="text" id="custNotes" placeholder="أي تعليمات خاصة للتوصيل" class="w-full bg-darkBg border border-gold-900/60 rounded-xl px-4 py-2.5 text-xs text-gold-100 focus:outline-none focus:border-gold-500">
+                                </div>
+                                <button type="submit" class="w-full bg-gradient-to-r from-gold-600 to-gold-400 text-darkBg font-bold py-3.5 rounded-xl shadow-lg hover:opacity-95 transition-all text-sm mt-4">
+                                    تأكيد وإرسال الطلب الآن
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                `;
+            },
+
+            submitOrder: async function(e, productId, qty, color, unitPrice) {
+                e.preventDefault();
+                const p = this.products.find(item => item.id === productId);
+                
+                const newOrder = {
+                    id: 'ord-' + Date.now(),
+                    productId: productId,
+                    productName: p ? p.name : 'منتج',
+                    unitPrice: unitPrice,
+                    totalPrice: unitPrice * qty,
+                    quantity: qty,
+                    color: color,
+                    customerName: document.getElementById('custName').value,
+                    phone: document.getElementById('custPhone').value,
+                    governorate: document.getElementById('custGov').value,
+                    address: document.getElementById('custAddress').value,
+                    contactMethod: document.getElementById('custContactMethod').value,
+                    notes: document.getElementById('custNotes').value || '',
+                    status: 'جديد',
+                    date: new Date().toISOString().split('T')[0]
+                };
+
+                this.orders.unshift(newOrder);
+                await this.saveOrderToFirestore(newOrder);
+                this.closeModal();
+
+                const modal = document.getElementById('modalContainer');
+                modal.innerHTML = `
+                    <div class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+                        <div class="bg-cardBg border border-gold-900/60 rounded-3xl max-w-md w-full p-8 text-center space-y-4 shadow-2xl relative">
+                            <div class="w-20 h-20 bg-gradient-to-tr from-gold-600 to-gold-400 text-darkBg rounded-3xl mx-auto flex items-center justify-center text-3xl shadow-xl">
+                                <i class="fa-solid fa-check"></i>
+                            </div>
+                            <h2 class="text-2xl font-black text-gold-100">تم استلام طلبك بنجاح!</h2>
+                            <p class="text-xs text-gold-300/80 leading-relaxed">
+                                شكراً لك لحجزك من متجر <strong class="text-gold-400">Universitys</strong>. تم تسجيل طلبك رقم <span class="font-mono text-gold-200">#${newOrder.id}</span> وسنقوم بالتواصل معك في أقرب وقت لتأكيد الشحن.
+                            </p>
+                            <button onclick="appState.closeModal(); router.navigate('home');" class="w-full bg-gradient-to-r from-gold-600 to-gold-400 text-darkBg font-bold py-3 rounded-xl shadow-lg mt-4 text-xs">
+                                العودة للمتجر
+                            </button>
+                        </div>
+                    </div>
+                `;
+            },
+
+            openReviewModal: function(productId) {
+                const modal = document.getElementById('modalContainer');
+                modal.innerHTML = `
+                    <div class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+                        <div class="bg-cardBg border border-gold-900/60 rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl relative">
+                            <button onclick="appState.closeModal()" class="absolute top-4 left-4 text-gold-400 hover:text-gold-200 text-xl"><i class="fa-solid fa-xmark"></i></button>
+                            <h2 class="text-xl font-bold text-gold-200 mb-4 text-center">أضف تقييمك للمنتج</h2>
+                            <form onsubmit="appState.submitReview(event, '${productId}')" class="space-y-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-gold-300 mb-1">اسمك الكريم *</label>
+                                    <input type="text" id="reviewName" required class="w-full bg-darkBg border border-gold-900/60 rounded-xl px-4 py-2 text-xs text-gold-100 focus:outline-none focus:border-gold-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-gold-300 mb-1">التقييم بالنجوم *</label>
+                                    <select id="reviewRating" class="w-full bg-darkBg border border-gold-900/60 rounded-xl px-4 py-2 text-xs text-gold-100 focus:outline-none focus:border-gold-500">
+                                        <option value="5">★★★★★ (5/5 ممتاز)</option>
+                                        <option value="4">★★★★☆ (4/5 جيد جداً)</option>
+                                        <option value="3">★★★☆☆ (3/5 متوسط)</option>
+                                        <option value="2">★★☆☆☆ (2/5 مقبول)</option>
+                                        <option value="1">★☆☆☆☆ (1/5 ضعيف)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-gold-300 mb-1">تعليقك *</label>
+                                    <textarea id="reviewComment" required rows="3" class="w-full bg-darkBg border border-gold-900/60 rounded-xl px-4 py-2 text-xs text-gold-100 focus:outline-none focus:border-gold-500"></textarea>
+                                </div>
+                                <button type="submit" class="w-full bg-gradient-to-r from-gold-600 to-gold-400 text-darkBg font-bold py-3 rounded-xl shadow-lg text-xs">إرسال التقييم</button>
+                            </form>
+                        </div>
+                    </div>
+                `;
+            },
+
+            submitReview: async function(e, productId) {
+                e.preventDefault();
+                const newRev = {
+                    id: 'rev-' + Date.now(),
+                    productId: productId,
+                    customerName: document.getElementById('reviewName').value,
+                    rating: parseInt(document.getElementById('reviewRating').value),
+                    comment: document.getElementById('reviewComment').value,
+                    date: new Date().toISOString().split('T')[0]
+                };
+
+                this.reviews.unshift(newRev);
+                await this.saveReviewToFirestore(newRev);
+                this.closeModal();
+                this.showToast('تم إضافة تقييمك بنجاح', 'success');
+                router.navigate('product', { productId });
+            },
+
+            // Admin Dashboard Controls (Secure & Exclusive)
+            adminActiveTab: 'products',
+            setAdminTab: function(tab) {
+                this.adminActiveTab = tab;
+                this.render();
+            },
+
+            renderAdminDashboard: function() {
+                return `
+                    <div class="space-y-6">
+                        <!-- Admin Top Bar -->
+                        <div class="bg-cardBg border border-gold-900/50 rounded-3xl p-6 sm:p-8 shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
+                            <div>
+                                <span class="text-xs font-bold text-gold-400 tracking-widest">لوحة التحكم الخاصة بك (حصرية لمالك المتجر)</span>
+                                <h2 class="text-2xl sm:text-3xl font-black text-gold-100 mt-1">إدارة منتجات وطلبات Universitys</h2>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <button onclick="appState.openAddProductModal()" class="bg-gradient-to-r from-gold-600 to-gold-400 text-darkBg px-4 py-2.5 rounded-xl font-bold text-xs shadow-lg flex items-center gap-1.5">
+                                    <i class="fa-solid fa-plus"></i> إضافة منتج جديد
+                                </button>
+                                <button onclick="appState.openAddCategoryModal()" class="bg-darkBg border border-gold-900/60 text-gold-300 hover:text-gold-100 px-4 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5">
+                                    <i class="fa-solid fa-folder-plus"></i> إضافة قسم
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Tabs Header -->
+                        <div class="flex space-x-2 space-x-reverse border-b border-gold-900/40 pb-2">
+                            <button onclick="appState.setAdminTab('products')" class="px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${this.adminActiveTab === 'products' ? 'bg-gold-500 text-darkBg shadow-lg' : 'bg-cardBg text-gold-300 border border-gold-900/60'}">
+                                <i class="fa-solid fa-box ml-1"><span>إدارة المنتجات (${this.products.length})</span></i>
+                            </button>
+                            <button onclick="appState.setAdminTab('orders')" class="px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${this.adminActiveTab === 'orders' ? 'bg-gold-500 text-darkBg shadow-lg' : 'bg-cardBg text-gold-300 border border-gold-900/60'}">
+                                <i class="fa-solid fa-bag-shopping ml-1"><span>إدارة الطلبات (${this.orders.length})</span></i>
+                            </button>
+                            <button onclick="appState.setAdminTab('categories')" class="px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${this.adminActiveTab === 'categories' ? 'bg-gold-500 text-darkBg shadow-lg' : 'bg-cardBg text-gold-300 border border-gold-900/60'}">
+                                <i class="fa-solid fa-layer-group ml-1"><span>إدارة الأقسام (${this.categories.length})</span></i>
+                            </button>
+                            <button onclick="appState.setAdminTab('reviews')" class="px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${this.adminActiveTab === 'reviews' ? 'bg-gold-500 text-darkBg shadow-lg' : 'bg-cardBg text-gold-300 border border-gold-900/60'}">
+                                <i class="fa-solid fa-star ml-1"><span>إدارة التقييمات (${this.reviews.length})</span></i>
+                            </button>
+                        </div>
+
+                        <!-- Tab Content -->
+                        <div class="bg-cardBg border border-gold-900/50 rounded-3xl p-6 sm:p-8 shadow-2xl">
+                            ${this.adminActiveTab === 'products' ? this.renderAdminProductsTable() : ''}
+                            ${this.adminActiveTab === 'orders' ? this.renderAdminOrdersTable() : ''}
+                            ${this.adminActiveTab === 'categories' ? this.renderAdminCategoriesTable() : ''}
+                            ${this.adminActiveTab === 'reviews' ? this.renderAdminReviewsTable() : ''}
+                        </div>
+                    </div>
+                `;
+            },
+
+            renderAdminProductsTable: function() {
+                return `
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-right text-xs">
+                            <thead class="bg-darkBg text-gold-400 border-b border-gold-900/60">
+                                <tr>
+                                    <th class="p-3">المنتج</th>
+                                    <th class="p-3">القسم</th>
+                                    <th class="p-3">السعر</th>
+                                    <th class="p-3">المخزون</th>
+                                    <th class="p-3">الحالة</th>
+                                    <th class="p-3 text-center">الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gold-900/30 text-gold-200">
+                                ${this.products.map(p => `
+                                    <tr class="hover:bg-darkBg/50 transition-colors">
+                                        <td class="p-3 flex items-center gap-3">
+                                            <img src="${p.images && p.images[0] ? p.images[0] : 'https://placehold.co/100'}" class="w-10 h-10 rounded-xl object-cover border border-gold-900/40">
+                                            <div>
+                                                <span class="font-bold block">${p.name}</span>
+                                                <span class="text-[10px] text-gold-400/60">${p.id}</span>
+                                            </div>
+                                        </td>
+                                        <td class="p-3">${p.category}</td>
+                                        <td class="p-3 font-bold text-gold-400">${p.price} ج.م</td>
+                                        <td class="p-3">${p.stock || 0}</td>
+                                        <td class="p-3">
+                                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold ${!p.hidden ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-red-950 text-red-400 border border-red-800'}">
+                                                ${!p.hidden ? 'ظاهر للعملاء' : 'مخفي'}
+                                            </span>
+                                        </td>
+                                        <td class="p-3 text-center space-x-1 space-x-reverse">
+                                            <button onclick="appState.toggleProductVisibility('${p.id}')" class="p-2 rounded-xl bg-darkBg border border-gold-900/60 text-gold-300 hover:text-gold-100" title="إخفاء/إظهار">
+                                                <i class="fa-solid ${p.hidden ? 'fa-eye' : 'fa-eye-slash'}"></i>
+                                            </button>
+                                            <button onclick="appState.openEditProductModal('${p.id}')" class="p-2 rounded-xl bg-darkBg border border-gold-900/60 text-gold-300 hover:text-gold-100" title="تعديل">
+                                                <i class="fa-solid fa-pen-to-square"></i>
+                                            </button>
+                                            <button onclick="appState.deleteProduct('${p.id}')" class="p-2 rounded-xl bg-darkBg border border-red-900/60 text-red-400 hover:bg-red-950" title="حذف">
+                                                <i class="fa-solid fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            },
+
+            renderAdminOrdersTable: function() {
+                if (this.orders.length === 0) {
+                    return `<div class="text-center py-12 text-gold-400 text-xs">لا توجد طلبات واردة حتى الآن</div>`;
+                }
+
+                return `
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-right text-xs">
+                            <thead class="bg-darkBg text-gold-400 border-b border-gold-900/60">
+                                <tr>
+                                    <th class="p-3">رقم الطلب</th>
+                                    <th class="p-3">العميل</th>
+                                    <th class="p-3">المنتج والكمية</th>
+                                    <th class="p-3">الإجمالي</th>
+                                    <th class="p-3">العنوان والهاتف</th>
+                                    <th class="p-3">الحالة</th>
+                                    <th class="p-3 text-center">تحديث الحالة</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gold-900/30 text-gold-200">
+                                ${this.orders.map(o => `
+                                    <tr class="hover:bg-darkBg/50 transition-colors">
+                                        <td class="p-3 font-mono font-bold text-gold-400">${o.id}</td>
+                                        <td class="p-3">
+                                            <span class="font-bold block">${o.customerName}</span>
+                                            <span class="text-[10px] text-gold-400/60">${o.date || ''}</span>
+                                        </td>
+                                        <td class="p-3">
+                                            <span class="font-bold block">${o.productName}</span>
+                                            <span class="text-[10px] text-gold-300">الكمية: ${o.quantity} ${o.color ? '- اللون: ' + o.color : ''}</span>
+                                        </td>
+                                        <td class="p-3 font-bold text-gold-400">${o.totalPrice} ج.م</td>
+                                        <td class="p-3">
+                                            <span class="block">${o.phone}</span>
+                                            <span class="text-[10px] text-gold-400/70">${o.governorate} - ${o.address}</span>
+                                        </td>
+                                        <td class="p-3">
+                                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-gold-950 text-gold-300 border border-gold-800">${o.status}</span>
+                                        </td>
+                                        <td class="p-3 text-center">
+                                            <select onchange="appState.changeOrderStatus('${o.id}', this.value)" class="bg-darkBg border border-gold-900/60 rounded-xl px-2.5 py-1 text-xs text-gold-100 focus:outline-none">
+                                                <option value="جديد" ${o.status === 'جديد' ? 'selected' : ''}>جديد</option>
+                                                <option value="تم التواصل مع العميل" ${o.status === 'تم التواصل مع العميل' ? 'selected' : ''}>تم التواصل مع العميل</option>
+                                                <option value="جاري التجهيز" ${o.status === 'جاري التجهيز' ? 'selected' : ''}>جاري التجهيز</option>
+                                                <option value="تم الشحن" ${o.status === 'تم الشحن' ? 'selected' : ''}>تم الشحن</option>
+                                                <option value="تم التسليم" ${o.status === 'تم التسليم' ? 'selected' : ''}>تم التسليم</option>
+                                                <option value="ملغي" ${o.status === 'ملغي' ? 'selected' : ''}>ملغي</option>
+                                            </select>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            },
+
+            renderAdminCategoriesTable: function() {
+                return `
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                        ${this.categories.map(c => `
+                            <div class="bg-darkBg border border-gold-900/50 p-4 rounded-2xl flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-xl bg-gold-500/20 text-gold-400 flex items-center justify-center text-base">
+                                        <i class="fa-solid ${c.icon || 'fa-folder'}"></i>
+                                    </div>
+                                    <span class="font-bold text-sm text-gold-200">${c.name}</span>
+                                </div>
+                                <button onclick="appState.deleteCategory('${c.id}')" class="text-red-400 hover:text-red-300 p-2"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            },
+
+            renderAdminReviewsTable: function() {
+                return `
+                    <div class="space-y-3">
+                        ${this.reviews.map(r => `
+                            <div class="bg-darkBg border border-gold-900/50 p-4 rounded-2xl flex items-center justify-between">
+                                <div>
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="font-bold text-xs text-gold-200">${r.customerName}</span>
+                                        <span class="text-xs text-gold-400 font-bold">${r.rating} <i class="fa-solid fa-star"></i></span>
+                                    </div>
+                                    <p class="text-xs text-gold-300/80">${r.comment}</p>
+                                </div>
+                                <button onclick="appState.deleteReview('${r.id}')" class="bg-red-950 border border-red-900 text-red-400 hover:text-red-200 px-3 py-2 rounded-xl text-xs">حذف التعليق</button>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            },
+
+            openAddProductModal: function() {
+                const modal = document.getElementById('modalContainer');
+                modal.innerHTML = `
+                    <div class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+                        <div class="bg-cardBg border border-gold-900/60 rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+                            <button onclick="appState.closeModal()" class="absolute top-4 left-4 text-gold-400 hover:text-gold-200 text-xl"><i class="fa-solid fa-xmark"></i></button>
+                            <h2 class="text-xl font-bold text-gold-200 mb-6">إضافة منتج جديد (خاص بك)</h2>
+                            <form onsubmit="appState.saveNewProduct(event)" class="space-y-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-gold-300 mb-1">اسم المنتج *</label>
+                                    <input type="text" id="newProdName" required class="w-full bg-darkBg border border-gold-900/60 rounded-xl px-4 py-2 text-xs text-gold-100 focus:outline-none focus:border-gold-500">
+                                </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                    <div>
+                                        <label class="block text-xs font-semibold text-gold-300 mb-1">السعر (ج.م) *</label>
+                                        <input type="number" id="newProdPrice" required class="w-full bg-darkBg border border-gold-900/60 rounded-xl px-4 py-2 text-xs text-gold-100 focus:outline-none focus:border-gold-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-gold-300 mb-1">القسم *</label>
+                                        <select id="newProdCat" class="w-full bg-darkBg border border-gold-900/60 rounded-xl px-4 py-2 text-xs text-gold-100 focus:outline-none focus:border-gold-500">
+                                            ${this.categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('')}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-gold-300 mb-1">المخزون *</label>
+                                        <input type="number" id="newProdStock" value="20" required class="w-full bg-darkBg border border-gold-900/60 rounded-xl px-4 py-2 text-xs text-gold-100 focus:outline-none focus:border-gold-500">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-gold-300 mb-1">رابط صورة المنتج الرئيسية *</label>
+                                    <input type="url" id="newProdImg" required placeholder="https://..." class="w-full bg-darkBg border border-gold-900/60 rounded-xl px-4 py-2 text-xs text-gold-100 focus:outline-none focus:border-gold-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-gold-300 mb-1">وصف المنتج *</label>
+                                    <textarea id="newProdDesc" required rows="2" class="w-full bg-darkBg border border-gold-900/60 rounded-xl px-4 py-2 text-xs text-gold-100 focus:outline-none focus:border-gold-500"></textarea>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-gold-300 mb-1">المواصفات التقنية</label>
+                                    <input type="text" id="newProdSpecs" placeholder="إصدار بلوتوث، بطارية، إلخ..." class="w-full bg-darkBg border border-gold-900/60 rounded-xl px-4 py-2 text-xs text-gold-100 focus:outline-none focus:border-gold-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-gold-300 mb-1">الألوان المتاحة (مفصولة بفاصلة)</label>
+                                    <input type="text" id="newProdColors" placeholder="أسود، أبيض، ذهبي" class="w-full bg-darkBg border border-gold-900/60 rounded-xl px-4 py-2 text-xs text-gold-100 focus:outline-none focus:border-gold-500">
+                                </div>
+                                <button type="submit" class="w-full bg-gradient-to-r from-gold-600 to-gold-400 text-darkBg font-bold py-3 rounded-xl shadow-lg text-xs mt-2">حفظ وإضافة المنتج للمتجر</button>
+                            </form>
+                        </div>
+                    </div>
+                `;
+            },
+
+            saveNewProduct: async function(e) {
+                e.preventDefault();
+                if (!this.isAdmin) {
+                    this.showToast('عذراً، هذه الصلاحية للمالك فقط', 'error');
+                    return;
+                }
+
+                const colorsInput = document.getElementById('newProdColors').value;
+                const colorsArr = colorsInput ? colorsInput.split(',').map(c => c.trim()).filter(Boolean) : [];
+
+                const newP = {
+                    id: 'prod-' + Date.now(),
+                    name: document.getElementById('newProdName').value,
+                    price: parseFloat(document.getElementById('newProdPrice').value),
+                    category: document.getElementById('newProdCat').value,
+                    stock: parseInt(document.getElementById('newProdStock').value),
+                    images: [document.getElementById('newProdImg').value],
+                    description: document.getElementById('newProdDesc').value,
+                    specs: document.getElementById('newProdSpecs').value,
+                    colors: colorsArr,
+                    hidden: false,
+                    rating: 5.0,
+                    reviewsCount: 0,
+                    createdAt: Date.now()
+                };
+
+                this.products.unshift(newP);
+                await this.saveProductToFirestore(newP);
+                this.closeModal();
+                this.showToast('تم إضافة المنتج الجديد بنجاح', 'success');
+                this.render();
+            },
+
+            openEditProductModal: function(productId) {
+                const p = this.products.find(item => item.id === productId);
+                if (!p) return;
+
+                const modal = document.getElementById('modalContainer');
+                modal.innerHTML = `
+                    <div class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+                        <div class="bg-cardBg border border-gold-900/60 rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+                            <button onclick="appState.closeModal()" class="absolute top-4 left-4 text-gold-400 hover:text-gold-200 text-xl"><i class="fa-solid fa-xmark"></i></button>
+                            <h2 class="text-xl font-bold text-gold-200 mb-6">تعديل بيانات المنتج</h2>
+                            <form onsubmit="appState.updateProductSubmit(event, '${p.id}')" class="space-y-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-gold-300 mb-1">اسم المنتج *</label>
+                                    <input type="text" id="editProdName" value="${p.name}" required class="w-full bg-darkBg border border-gold-900/60 rounded-xl px-4 py-2 text-xs text-gold-100 focus:outline-none focus:border-gold-500">
+                                </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                    <div>
+                                        <label class="block text-xs font-semibold text-gold-300 mb-1">السعر (ج.م) *</label>
+                                        <input type="number" id="editProdPrice" value="${p.price}" required class="w-full bg-darkBg border border-gold-900/60 rounded-xl px-4 py-2 text-xs text-gold-100 focus:outline-none focus:border-gold-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-gold-300 mb-1">القسم *</label>
+                                        <select id="editProdCat" class="w-full bg-darkBg border border-gold-900/60 rounded-xl px-4 py-2 text-xs text-gold-100 focus:outline-none focus:border-gold-500">
+                                            ${this.categories.map(c => `<option value="${c.name}" ${p.category === c.name ? 'selected' : ''}>${c.name}</option>`).join('')}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-gold-300 mb-1">المخزون *</label>
+                                        <input type="number" id="editProdStock" value="${p.stock || 10}" required class="w-full bg-darkBg border border-gold-900/60 rounded-xl px-4 py-2 text-xs text-gold-100 focus:outline-none focus:border-gold-500">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-gold-300 mb-1">رابط صورة المنتج *</label>
+                                    <input type="url" id="editProdImg" value="${p.images && p.images[0] ? p.images[0] : ''}" required class="w-full bg-darkBg border border-gold-900/60 rounded-xl px-4 py-2 text-xs text-gold-100 focus:outline-none focus:border-gold-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-gold-300 mb-1">وصف المنتج *</label>
+                                    <textarea id="editProdDesc" required rows="2" class="w-full bg-darkBg border border-gold-900/60 rounded-xl px-4 py-2 text-xs text-gold-100 focus:outline-none focus:border-gold-500">${p.description || ''}</textarea>
+                                </div>
+                                <button type="submit" class="w-full bg-gradient-to-r from-gold-600 to-gold-400 text-darkBg font-bold py-3 rounded-xl shadow-lg text-xs mt-2">حفظ التعديلات</button>
+                            </form>
+                        </div>
+                    </div>
+                `;
+            },
+
+            updateProductSubmit: async function(e, productId) {
+                e.preventDefault();
+                if (!this.isAdmin) return;
+
+                const idx = this.products.findIndex(item => item.id === productId);
+                if (idx !== -1) {
+                    this.products[idx].name = document.getElementById('editProdName').value;
+                    this.products[idx].price = parseFloat(document.getElementById('editProdPrice').value);
+                    this.products[idx].category = document.getElementById('editProdCat').value;
+                    this.products[idx].stock = parseInt(document.getElementById('editProdStock').value);
+                    this.products[idx].images = [document.getElementById('editProdImg').value];
+                    this.products[idx].description = document.getElementById('editProdDesc').value;
+
+                    await this.saveProductToFirestore(this.products[idx]);
+                    this.closeModal();
+                    this.showToast('تم تحديث المنتج بنجاح', 'success');
+                    this.render();
+                }
+            },
+
+            toggleProductVisibility: async function(productId) {
+                if (!this.isAdmin) return;
+                const p = this.products.find(item => item.id === productId);
+                if (p) {
+                    p.hidden = !p.hidden;
+                    await this.saveProductToFirestore(p);
+                    this.showToast('تم تحديث حالة الظهور', 'info');
+                    this.render();
+                }
+            },
+
+            deleteProduct: async function(productId) {
+                if (!this.isAdmin) return;
+                if (confirm('هل أنت متأكد من حذف هذا المنتج؟')) {
+                    this.products = this.products.filter(item => item.id !== productId);
+                    await this.deleteProductFromFirestore(productId);
+                    this.showToast('تم حذف المنتج', 'success');
+                    this.render();
+                }
+            },
+
+            changeOrderStatus: async function(orderId, status) {
+                if (!this.isAdmin) return;
+                const o = this.orders.find(item => item.id === orderId);
+                if (o) {
+                    o.status = status;
+                    await this.updateOrderStatusInFirestore(orderId, status);
+                    this.showToast('تم تحديث حالة الطلب', 'success');
+                }
+            },
+
+            openAddCategoryModal: function() {
+                if (!this.isAdmin) return;
+                const modal = document.getElementById('modalContainer');
+                modal.innerHTML = `
+                    <div class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+                        <div class="bg-cardBg border border-gold-900/60 rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl relative">
+                            <button onclick="appState.closeModal()" class="absolute top-4 left-4 text-gold-400 hover:text-gold-200 text-xl"><i class="fa-solid fa-xmark"></i></button>
+                            <h2 class="text-xl font-bold text-gold-200 mb-4">إضافة قسم جديد</h2>
+                            <form onsubmit="appState.saveNewCategory(event)" class="space-y-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-gold-300 mb-1">اسم القسم *</label>
+                                    <input type="text" id="newCatName" required class="w-full bg-darkBg border border-gold-900/60 rounded-xl px-4 py-2 text-xs text-gold-100 focus:outline-none focus:border-gold-500">
+                                </div>
+                                <button type="submit" class="w-full bg-gold-500 text-darkBg font-bold py-3 rounded-xl text-xs">إضافة القسم</button>
+                            </form>
+                        </div>
+                    </div>
+                `;
+            },
+
+            saveNewCategory: async function(e) {
+                e.preventDefault();
+                if (!this.isAdmin) return;
+                const name = document.getElementById('newCatName').value.trim();
+                if (!name) return;
+                const newC = { id: 'cat-' + Date.now(), name, icon: 'fa-mobile', image: 'https://placehold.co/400x300' };
+                this.categories.push(newC);
+                this.closeModal();
+                this.showToast('تم إضافة القسم بنجاح', 'success');
+                this.render();
+            },
+
+            deleteCategory: async function(catId) {
+                if (!this.isAdmin) return;
+                this.categories = this.categories.filter(c => c.id !== catId);
+                this.showToast('تم حذف القسم', 'success');
+                this.render();
+            },
+
+            deleteReview: async function(revId) {
+                if (!this.isAdmin) return;
+                this.reviews = this.reviews.filter(r => r.id !== revId);
+                await this.deleteReviewFromFirestore(revId);
+                this.showToast('تم حذف التقييم', 'success');
+                this.render();
+            }
+        };
+
+        window.onload = function() {
+            appState.render();
+        };
+    </script>
+</body>
+</html>
